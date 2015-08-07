@@ -1,0 +1,356 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE
+The complete set of authors may be found at http://polymer.github.io/AUTHORS
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>iron-list test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../web-component-tester/browser.js"></script>
+  <script src="../../test-fixture/test-fixture-mocha.js"></script>
+  <script src="../../iron-test-helpers/mock-interactions.js"></script>
+
+  <link rel="import" href="../../test-fixture/test-fixture.html">
+  <link rel="import" href="../../paper-styles/paper-styles.html">
+  <link rel="import" href="helpers.html">
+  <link rel="import" href="x-list.html">
+
+</head>
+<body>
+
+  <test-fixture id="trivialList">
+    <template>
+      <x-list></x-list>
+    </template>
+  </test-fixture>
+
+  <script>
+
+    suite('selection', function() {
+      var list, container;
+
+      setup(function() {
+        container = fixture('trivialList');
+        list = container.list;
+      });
+
+      test('single selection by item index', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          assert.isNull(list.selected);
+
+          list.selectItem(0);
+
+          assert.deepEqual(list.selected, list.items[0]);
+
+          list.deselectItem(0);
+
+          assert.deepEqual(list.selected, null);
+
+          list.selectItem(99);
+
+          assert.deepEqual(list.selected, list.items[99]);
+
+          done();
+        });
+      });
+
+      test('single selection by item object', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          assert.isNull(list.selected);
+
+          list.selectItem(list.items[50]);
+
+          assert.deepEqual(list.selected, list.items[50]);
+
+          done();
+        });
+      });
+
+      test('multi selection by item index', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.multi = true;
+
+          assert.isArray(list.selected);
+
+          list.selectItem(0);
+          list.selectItem(50);
+          list.selectItem(99);
+
+          assert.equal(list.selected.length, 3);
+          assert.notEqual(list.selected.indexOf(list.items[0]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[50]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[99]), -1);
+          assert.equal(list.selected.indexOf(list.items[2]), -1);
+
+          done();
+        });
+      });
+
+      test('multi selection by item object', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.multi = true;
+
+          assert.isArray(list.selected);
+
+          list.selectItem(list.items[0]);
+          list.selectItem(list.items[50]);
+          list.selectItem(list.items[99]);
+
+          assert.equal(list.selected.length, 3);
+          assert.notEqual(list.selected.indexOf(list.items[0]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[50]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[99]), -1);
+          assert.equal(list.selected.indexOf(list.items[2]), -1);
+
+          done();
+        });
+      });
+
+      test('clear selection', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.multi = true;
+
+          assert.isArray(list.selected);
+
+          list.items.forEach(function(item) {
+             list.selectItem(item);
+          });
+
+          assert.equal(list.selected.length, list.items.length);
+
+          list.clearSelection();
+
+          assert.equal(list.selected.length, 0);
+
+          done();
+        });
+      });
+
+
+      test('toggle selection by item index', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.toggleSelection(0);
+
+          assert.deepEqual(list.selected, list.items[0]);
+
+          list.toggleSelection(0);
+
+          assert.isNull(list.selected);
+
+          done();
+        });
+      });
+
+      test('toggle selection by item object', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.toggleSelection(list.items[0]);
+
+          assert.deepEqual(list.selected, list.items[0]);
+
+          list.toggleSelection(list.items[0]);
+
+          assert.isNull(list.selected);
+
+          done();
+        });
+      });
+
+      test('change multi property', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.multi = true;
+
+          assert.isArray(list.selected);
+
+          list.multi = false;
+
+          assert.isNotArray(list.selected);
+          assert.isNull(list.selected);
+
+          list.multi = true;
+
+          assert.isArray(list.selected);
+
+          done();
+        });
+      });
+
+      test('selectionEnabled with single selection', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.selectionEnabled = true;
+
+          assert.isNull(list.selected);
+
+          // select item[0]
+          MockInteractions.tap(list._physicalItems[0]);
+
+          assert.deepEqual(list.selected, list.items[0]);
+
+          // select item[5] and deselect item[0]
+          MockInteractions.tap(list._physicalItems[5]);
+
+          // select item[1] and deselect item[5]
+          MockInteractions.tap(list._physicalItems[1]);
+
+          assert.deepEqual(list.selected, list.items[1]);
+
+          done();
+        });
+      });
+
+      test('selectionEnabled with multiple selection', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          list.multi = true;
+
+          MockInteractions.tap(list._physicalItems[0]);
+          assert.equal(list.selected.length, 0);
+
+          // enable the feature
+          list.selectionEnabled = true;
+
+          // select item[0]
+          MockInteractions.tap(list._physicalItems[0]);
+
+          assert.notEqual(list.selected.indexOf(list.items[0]), -1);
+
+          // multiple selection
+          MockInteractions.tap(list._physicalItems[1]);
+          MockInteractions.tap(list._physicalItems[5]);
+          MockInteractions.tap(list._physicalItems[10]);
+          MockInteractions.tap(list._physicalItems[12]);
+
+          list.selectItem(0);
+          list.deselectItem(1);
+
+          assert.equal(list.selected.indexOf(list.items[1]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[0]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[5]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[10]), -1);
+          assert.notEqual(list.selected.indexOf(list.items[12]), -1);
+
+          list.clearSelection();
+
+          assert.equal(list.selected.length, 0);
+
+          // disable the feature
+          list.selectionEnabled = false;
+
+          MockInteractions.tap(list._physicalItems[1]);
+
+          assert.equal(list.selected.length, 0);
+
+          done();
+        });
+      });
+
+    test('toggle', function(done) {
+      list.items = buildDataSet(100);
+
+      flush(function() {
+        list.selectionEnabled = true;
+
+        MockInteractions.tap(list._physicalItems[0]);
+        MockInteractions.tap(list._physicalItems[0]);
+
+        assert.deepEqual(list.selected, list.items[0]);
+
+        list.clearSelection();
+        list.toggle = true;
+
+        MockInteractions.tap(list._physicalItems[0]);
+        MockInteractions.tap(list._physicalItems[0]);
+
+        assert.isNull(list.selected);
+
+        done();
+      });
+
+    });
+
+     test('selectedAs', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          // multi selection
+          list.multi = true;
+
+          assert.isFalse(list._physicalItems[0]._templateInstance.selected);
+
+          list.selectItem(0);
+
+          assert.isTrue(list._physicalItems[0]._templateInstance.selected);
+
+          list.toggleSelection(0);
+
+          assert.isFalse(list._physicalItems[0]._templateInstance.selected);
+
+          // single selection
+          list.multi = false;
+
+          list.selectItem(0);
+          list.selectItem(10);
+
+          assert.isFalse(list._physicalItems[0]._templateInstance.selected);
+          assert.isTrue(list._physicalItems[10]._templateInstance.selected);
+
+
+          done();
+        });
+      });
+
+
+      test('splice a selected item', function(done) {
+        list.items = buildDataSet(100);
+
+        flush(function() {
+          // multi selection
+          list.multi = true;
+
+          // select the first two items
+          list.selectItem(0);
+          list.selectItem(1);
+
+          assert.equal(list.selected.length, 2);
+
+          // remove the first two items
+          list.splice('items', 0, 2);
+
+          assert.equal(list.selected.length, 0);
+
+          done();
+        });
+      });
+    });
+
+  </script>
+
+</body>
+</html>
